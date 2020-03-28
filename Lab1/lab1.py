@@ -25,12 +25,14 @@ def loadDataset(data_batch):
     ytrain = np.concatenate(ytrain)
     xtest, ytest = load_batch(os.path.join(d, 'test_batch'))
     xtrain = np.reshape(xtrain, (xtrain.shape[0], -1))
+
     xtest = np.reshape(xtest, (xtest.shape[0], -1))
+
     x_mean_train = np.mean(xtrain, axis=0)
     xtrain -= x_mean_train
     xtrain=xtrain/255.0
     xtest -= x_mean_train
-    xtest=xtest/255.0
+    xtest=xtest/255.0    
     return xtrain.T, ytrain, xtest.T, ytest
 
 class neuralNet():
@@ -69,10 +71,8 @@ class neuralNet():
 
     def ComputeGradsNum(self,loss,X, Y, P,lamda, h):
         """ Converted from matlab code """
-        no 	= 	self.W.shape[0]
-        d 	= 	X.shape[0]
         grad_W = np.zeros(self.W.shape)
-        grad_b = np.zeros((no, 1))
+        grad_b = np.zeros(self.b.shape)
         c = self.computeCost(X, Y.T,lamda,loss)[0]
         for i in range(len(self.b)):
             tempB=neuralNet(self.k,self.d)
@@ -122,11 +122,17 @@ class neuralNet():
         if(loss=='crossEntropy'):
             l = - np.log(np.dot(y.T, self.EvaluateClassifier(x)))[0]
         elif(loss=='SVM'):
-            s = self.EvaluateClassifier(x)
+            # s = np.dot(self.W,x)+self.b
+            # y_int = np.where(y.T[0] == 1)[0][0]
+            # margins=np.maximum(0,s-s[y_int]+1)
+            # margins[y_int]=0
+            # l=np.sum(margins)
+            s = np.dot(self.W, x) + self.b
+            l = 0
             y_int = np.where(y.T[0] == 1)[0][0]
-            margins=np.maximum(0,s-s[y_int]+1)
-            margins[y_int]=0
-            l=np.sum(margins)
+            for j in range(10):
+                if j != y_int:
+                    l += max(0, s[j] - s[y_int] + 1)
         return l
 
     def compute_gradients(self,X, Y, P,lambda_reg,loss):
@@ -137,11 +143,10 @@ class neuralNet():
             n = X.shape[0]
             gradW = np.zeros((self.k, self.d))
             gradb = np.zeros((self.k, 1))
-
             for i in range(n):
                 x = X[i, :]
                 y_int = np.where(Y[i, :].T == 1)[0][0]
-                s = self.EvaluateClassifier(x.reshape(-1,1))
+                s = np.dot(self.W, x.reshape(-1,1)) + self.b
                 for j in range(self.k):
                     if j != y_int:
                         if max(0, s[j] - s[y_int] + 1) != 0:
@@ -226,24 +231,24 @@ class neuralNet():
 x_train, y_train, x_test, y_test = loadDataset(data_batch=1)
 d=np.shape(x_train)[0]
 k=10
-loss='crossEntropy'
+loss='SVM'
 
-[epoch,eta,lamda,batch]=[40,0.1,0,100]
+# [epoch,eta,lamda,batch]=[10,0.1,0,100]
 
-a=neuralNet(k,d)
-a.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
+# a=neuralNet(k,d)
+# a.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
 
-[epoch,eta,lamda,batch]=[40,0.001,0,100]
-b=neuralNet(k,d)
-b.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
+# [epoch,eta,lamda,batch]=[40,0.001,0,100]
+# b=neuralNet(k,d)
+# b.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
 
-[epoch,eta,lamda,batch]=[40,0.4,.1,100]
+[epoch,eta,lamda,batch]=[10,0.01,.1,100]
 c=neuralNet(k,d)
 c.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
 
-[epoch,eta,lamda,batch]=[40,0.001,1,100]
-d2=neuralNet(k,d)
-d2.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
+# [epoch,eta,lamda,batch]=[40,0.001,1,100]
+# d2=neuralNet(k,d)
+# d2.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
 
 
 
