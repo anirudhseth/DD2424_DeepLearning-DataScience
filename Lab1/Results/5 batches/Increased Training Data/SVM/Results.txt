@@ -1,0 +1,35 @@
+Epoch: 40  ETA: 0.1  Lambda:  0  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.284
+Accuracy on Test Set:0.2669
+Accuracy on Training Set:0.2782857142857143
+
+
+Epoch: 40  ETA: 0.001  Lambda:  0  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.379
+Accuracy on Test Set:0.3716
+Accuracy on Training Set:0.3836938775510204
+
+
+
+Epoch: 40  ETA: 0.001  Lambda:  0.1  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.383
+Accuracy on Test Set:0.3665
+Accuracy on Training Set:0.37920408163265307
+
+
+Epoch: 40  ETA: 0.001  Lambda:  1  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.357
+Accuracy on Test Set:0.3523
+Accuracy on Training Set:0.3512857142857143

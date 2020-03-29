@@ -1,0 +1,18 @@
+SVM
+
+Epoch: 40  ETA: 0.001  Lambda:  0.1  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.383
+Accuracy on Test Set:0.3665
+Accuracy on Training Set:0.3773061224489796
+
+
+Epoch: 40  ETA: 0.001  Lambda:  0.1  Batch Size: 100
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.354
+Accuracy on Test Set:0.3462
+Accuracy on Training Set:0.3492857142857143

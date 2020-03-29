@@ -1,0 +1,19 @@
+CE
+
+Epoch: 40  ETA: 0.00010346618059004224  Lambda:  0.05  Batch Size: 200
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.367
+Accuracy on Test Set:0.3697
+Accuracy on Training Set:0.3733061224489796
+
+svm
+
+Epoch: 40  ETA: 0.00010346618059004224  Lambda:  0.05  Batch Size: 200
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.382
+Accuracy on Test Set:0.3671
+Accuracy on Training Set:0.3817551020408163

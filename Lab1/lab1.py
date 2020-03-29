@@ -156,8 +156,17 @@ class neuralNet():
             gradb /= n
             return gradW, gradb
 
+    def augmentBatchData(self,X,Y):
+        augmentPercentage=0.1
+        augmentsize=int(augmentPercentage*X.shape[1])
+        randindex=np.random.randint(0,X.shape[1],augmentsize)
+        X_aug=X[:,randindex]
+        Y_aug=Y[randindex]
+        X=np.hstack((X,X_aug))
+        Y=np.hstack((Y,Y_aug))
+        return X,Y
 
-    def fit(self,loss,x_train,y_train,x_test,y_test,epoch,eta,lamda,batch,shuffle,decay,gradient,validation):
+    def fit(self,loss,x_train,y_train,x_test,y_test,epoch,eta,lamda,batch,shuffle,decay,gradient,validation,augment):
         if(validation):
             size=x_train.shape[1]
             validation_size=1000
@@ -179,6 +188,8 @@ class neuralNet():
                     j_end = n
                 Xbatch = x_train[:, j_start:j_end]
                 Ybatch = y_train[j_start:j_end]
+                if(augment==True):
+                    Xbatch,Ybatch=self.augmentBatchData(Xbatch,Ybatch)
                 Pbatch = self.EvaluateClassifier(Xbatch)
                 # print('batch:',j)
                 grad_W, grad_b = self.compute_gradients(Xbatch.T, self.oneHotVector(Ybatch), Pbatch,lamda,loss)
@@ -247,26 +258,102 @@ class neuralNet():
 
 
 
-x_train, y_train, x_test, y_test = loadDataset(data_batch=1)
+x_train, y_train, x_test, y_test = loadDataset(data_batch=5)
 d=np.shape(x_train)[0]
 k=10
-loss='crossEntropy'
 
-# loss='crossEntropy'
+############### Cross Entropy Loss ##############################
+loss='crossEntropy'
 [epoch,eta,lamda,batch]=[40,0.1,0,100]
 a_ce=neuralNet(k,d,xavierInit=False)
-a_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
+a_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
 
 [epoch,eta,lamda,batch]=[40,0.001,0,100]
-b=neuralNet(k,d,xavierInit=False)
-b.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
+b_ce=neuralNet(k,d,xavierInit=False)
+b_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
 
 [epoch,eta,lamda,batch]=[40,0.001,.1,100]
-c=neuralNet(k,d,xavierInit=False)
-c.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
+c_ce=neuralNet(k,d,xavierInit=False)
+c_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
 
 [epoch,eta,lamda,batch]=[40,0.001,1,100]
-d2=neuralNet(k,d,xavierInit=False)
-d2.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
+d_ce=neuralNet(k,d,xavierInit=False)
+d_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
 
+############################### SVM Loss ##############################
+
+loss='SVM'
+[epoch,eta,lamda,batch]=[40,0.1,0,100]
+a_svm=neuralNet(k,d,xavierInit=False)
+a_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
+
+[epoch,eta,lamda,batch]=[40,0.001,0,100]
+b_svm=neuralNet(k,d,xavierInit=False)
+b_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
+
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+c_svm=neuralNet(k,d,xavierInit=False)
+c_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
+
+[epoch,eta,lamda,batch]=[40,0.001,1,100]
+d_svm=neuralNet(k,d,xavierInit=False)
+d_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
+
+############################### Dta Shuffling ##############################
+loss='SVM'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+sh_svm=neuralNet(k,d,xavierInit=False)
+sh_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=False,gradient=False,validation=True,augment=False)
+
+loss='crossEntropy'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+sh_ce=neuralNet(k,d,xavierInit=False)
+sh_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=False,gradient=False,validation=True,augment=False)
+
+
+############################### Decay ETA ##############################
+loss='SVM'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+dc_svm=neuralNet(k,d,xavierInit=False)
+dc_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=True,gradient=False,validation=True,augment=False)
+
+loss='crossEntropy'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+dc_ce=neuralNet(k,d,xavierInit=False)
+dc_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=True,gradient=False,validation=True,augment=False)
+
+############################### Data Augment ##############################
+loss='SVM'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+aug_svm=neuralNet(k,d,xavierInit=False)
+aug_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=True)
+
+loss='crossEntropy'
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+aug_ce=neuralNet(k,d,xavierInit=False)
+aug_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=True)
+
+############################### Combined ##############################
+
+loss='crossEntropy'
+[epoch,eta,lamda,batch]=[40,0.007,.05,200]
+test_ce=neuralNet(k,d,xavierInit=False)
+test_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=True,gradient=False,validation=True,augment=True)
+
+
+loss='SVM'
+[epoch,eta,lamda,batch]=[10,0.007,.05,200]
+test_svm=neuralNet(k,d,xavierInit=False)
+test_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=True,gradient=False,validation=True,augment=True)
+
+loss='crossEntropy'
+[epoch,eta,lamda,batch]=[60,0.007,0.001,200]
+test2_ce=neuralNet(k,d,xavierInit=False)
+test2_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=True,gradient=False,validation=True,augment=True)
+
+
+loss='SVM'
+[epoch,eta,lamda,batch]=[60,0.007,0.001,200]
+test2_svm=neuralNet(k,d,xavierInit=False)
+test2_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=True,decay=True,gradient=False,validation=True,augment=True)
 

@@ -1,0 +1,19 @@
+
+loss='crossEntropy'...
+Epoch: 60  ETA: 1.257907209940104e-05  Lambda:  0.001  Batch Size: 200
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.375
+Accuracy on Test Set:0.3801
+Accuracy on Training Set:0.38577551020408163
+
+SVM
+
+Epoch: 60  ETA: 1.257907209940104e-05  Lambda:  0.001  Batch Size: 200
+Training Size: 49000
+Test Size: 10000
+Validation Size: 1000
+Accuracy on Validation Set:0.386
+Accuracy on Test Set:0.373
+Accuracy on Training Set:0.3903673469387755
