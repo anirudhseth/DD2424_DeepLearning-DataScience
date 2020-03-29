@@ -25,13 +25,8 @@ def loadDataset(data_batch):
     ytrain = np.concatenate(ytrain)
     xtest, ytest = load_batch(os.path.join(d, 'test_batch'))
     xtrain = np.reshape(xtrain, (xtrain.shape[0], -1))
-
     xtest = np.reshape(xtest, (xtest.shape[0], -1))
-
-    x_mean_train = np.mean(xtrain, axis=0)
-    xtrain -= x_mean_train
     xtrain=xtrain/255.0
-    xtest -= x_mean_train
     xtest=xtest/255.0    
     return xtrain.T, ytrain, xtest.T, ytest
 
@@ -51,8 +46,9 @@ class neuralNet():
         plt.show()
 
     def __init__(self,k,d,xavierInit):
+        np.random.seed(400)
         if(xavierInit):
-            self.W = np.random.normal(loc=0.0, scale=1/np.sqrt(2), size=(k, d))
+            self.W = np.random.normal(loc=0.0, scale=0.01, size=(k, d))
             self.b= np.random.normal(loc=0.0, scale=0.01,size= (k, 1))
         else:
             self.W = np.random.normal(loc=0.0, scale=0.01, size=(k, d))
@@ -61,8 +57,10 @@ class neuralNet():
         self.d=d
         self.loss_training=[]
         self.loss_test=[]
+        self.loss_validation=[]
         self.accuracy_training=[]
         self.accuracy_test=[]
+        self.accuracy_validation=[]
                 
     def softmax(self,x):
         softmax = np.exp(x) / sum(np.exp(x))
@@ -79,7 +77,7 @@ class neuralNet():
         grad_b = np.zeros(self.b.shape)
         c = self.computeCost(X, Y.T,lamda,loss)
         for i in range(len(self.b)):
-            tempB=neuralNet(self.k,self.d)
+            tempB=neuralNet(self.k,self.d,False)
             tempB.b = np.array(self.b)
             tempB.W=self.W
             tempB.b[i] += h
@@ -87,7 +85,7 @@ class neuralNet():
             grad_b[i] = (c2-c) / h
         for i in range(self.W.shape[0]):
             for j in range(self.W.shape[1]):
-                tempW=neuralNet(self.k,self.d)
+                tempW=neuralNet(self.k,self.d,False)
                 tempW.W = np.array(self.W)
                 tempW.b=self.b
                 tempW.W[i,j] += h
@@ -127,9 +125,9 @@ class neuralNet():
             l = - np.log(np.dot(y.T, self.EvaluateClassifier(x)))[0]
         elif(loss=='SVM'):
             s = np.dot(self.W,x)+self.b
-            y_int = np.where(y.T[0] == 1)[0][0]
-            margins=np.maximum(0,s-s[y_int]+1)
-            margins[y_int]=0
+            yi = np.where(y.T[0] == 1)[0][0]
+            margins=np.maximum(0,s-s[yi]+1)
+            margins[yi]=0
             l=np.sum(margins)
         return l
 
@@ -138,20 +136,21 @@ class neuralNet():
             G = -(Y - P.T).T
             return (np.dot(G,X)) / X.shape[0] + 2 * lambda_reg * self.W, np.mean(G, axis=-1, keepdims=True)
         elif(loss=='SVM'):
+            # http://cs231n.stanford.edu/slides/2017/cs231n_2017_lecture3.pdf
             n = X.shape[0]
             gradW = np.zeros((self.k, self.d))
             gradb = np.zeros((self.k, 1))
             for i in range(n):
                 x = X[i, :]
-                y_int = np.where(Y[i, :].T == 1)[0][0]
+                yi = np.where(Y[i, :].T == 1)[0][0]
                 s = np.dot(self.W, x.reshape(-1,1)) + self.b
                 for j in range(self.k):
-                    if j != y_int:
-                        if max(0, s[j] - s[y_int] + 1) != 0:
+                    if j != yi:
+                        if max(0, s[j] - s[yi] + 1) != 0:
                             gradW[j] += x
-                            gradW[y_int] += -x
+                            gradW[yi] += -x
                             gradb[j, 0] += 1
-                            gradb[y_int, 0] += -1
+                            gradb[yi, 0] += -1
             gradW /= n
             gradW += lambda_reg * self.W
             gradb /= n
@@ -194,12 +193,18 @@ class neuralNet():
                 self.b -= eta * grad_b
             J=self.computeCost(x_train, self.oneHotVector(y_train).T,lamda,loss)
             J_test=self.computeCost(x_test, self.oneHotVector(y_test).T,lamda,loss)
+            J_val=self.computeCost(x_validation, self.oneHotVector(y_validation).T,lamda,loss)
             self.loss_training.append(J)
             self.loss_test.append(J_test)
+            self.loss_validation.append(J_val)
             Accuracy_train=self.ComputeAccuracy(x_train,y_train)
             self.accuracy_training.append(Accuracy_train)
             Accuracy_test=self.ComputeAccuracy(x_test,y_test)
             self.accuracy_test.append(Accuracy_test)
+            if(validation):
+                Accuracy_val=self.ComputeAccuracy(x_validation,y_validation)
+            
+                self.accuracy_validation.append(Accuracy_val)
             if(decay):
                 eta=eta*0.9
                 # print('ETA Decay:',eta)
@@ -209,20 +214,24 @@ class neuralNet():
         print('Test Size:',x_test.shape[1])
         if(validation):
             print('Validation Size:',x_validation.shape[1])
+            print('Accuracy on Validation Set:'+str(self.accuracy_validation[-1]))
 
         self.performance()
 
     def performance(self):
         print('Accuracy on Test Set:'+str(self.accuracy_test[-1]))
         print('Accuracy on Training Set:'+str(self.accuracy_training[-1]))
+        
         plt.plot(self.loss_training,label="Training Set")
-        plt.plot(self.loss_test,label="Test Set")
+        # plt.plot(self.loss_test,label="Test Set")
+        plt.plot(self.loss_validation,label="Validation Set")
         plt.legend()
         plt.ylabel('loss')
         plt.xlabel('epochs')
         plt.show()
         plt.plot(self.accuracy_training,label="Training Set")
-        plt.plot(self.accuracy_test,label="Test Set")
+        # plt.plot(self.accuracy_test,label="Test Set")
+        plt.plot(self.accuracy_validation,label="Validation Set")
         plt.legend()
         plt.ylabel('Accuracy')
         plt.xlabel('epochs')
@@ -241,31 +250,23 @@ class neuralNet():
 x_train, y_train, x_test, y_test = loadDataset(data_batch=1)
 d=np.shape(x_train)[0]
 k=10
-# loss='SVM'
-
 loss='crossEntropy'
+
+# loss='crossEntropy'
 [epoch,eta,lamda,batch]=[40,0.1,0,100]
 a_ce=neuralNet(k,d,xavierInit=False)
 a_ce.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
 
-# loss='SVM'
-# [epoch,eta,lamda,batch]=[40,0.1,0,100]
-# a_svm=neuralNet(k,d)
-# a_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
+[epoch,eta,lamda,batch]=[40,0.001,0,100]
+b=neuralNet(k,d,xavierInit=False)
+b.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
 
-# [epoch,eta,lamda,batch]=[40,0.001,0,100]
-# b=neuralNet(k,d)
-# b.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
+[epoch,eta,lamda,batch]=[40,0.001,.1,100]
+c=neuralNet(k,d,xavierInit=False)
+c.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
 
-# [epoch,eta,lamda,batch]=[10,0.01,.1,100]
-# c=neuralNet(k,d)
-# c.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
-
-# [epoch,eta,lamda,batch]=[40,0.001,1,100]
-# d2=neuralNet(k,d)
-# d2.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False)
-
-
-
+[epoch,eta,lamda,batch]=[40,0.001,1,100]
+d2=neuralNet(k,d,xavierInit=False)
+d2.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True)
 
 
