@@ -46,10 +46,11 @@ class neuralNet():
         plt.show()
 
     def __init__(self,k,d,xavierInit):
-        np.random.seed(400)
+    
         if(xavierInit):
-            self.W = np.random.normal(loc=0.0, scale=0.01, size=(k, d))
-            self.b= np.random.normal(loc=0.0, scale=0.01,size= (k, 1))
+            nodes=3072.0
+            self.W = np.random.normal(loc=0.0, scale=np.sqrt(1/nodes), size=(k, d))
+            self.b= np.random.normal(loc=0.0, scale=np.sqrt(1/nodes),size= (k, 1))
         else:
             self.W = np.random.normal(loc=0.0, scale=0.01, size=(k, d))
             self.b= np.random.normal(loc=0.0, scale=0.01,size= (k, 1))
@@ -161,6 +162,8 @@ class neuralNet():
         augmentsize=int(augmentPercentage*X.shape[1])
         randindex=np.random.randint(0,X.shape[1],augmentsize)
         X_aug=X[:,randindex]
+        whiteNoise=np.random.normal(loc=0.0, scale=0.0001, size=X_aug.shape)
+        X_aug+=whiteNoise
         Y_aug=Y[randindex]
         X=np.hstack((X,X_aug))
         Y=np.hstack((Y,Y_aug))
@@ -258,7 +261,7 @@ class neuralNet():
 
 
 
-x_train, y_train, x_test, y_test = loadDataset(data_batch=5)
+x_train, y_train, x_test, y_test = loadDataset(data_batch=1)
 d=np.shape(x_train)[0]
 k=10
 
@@ -299,7 +302,7 @@ c_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=Fa
 d_svm=neuralNet(k,d,xavierInit=False)
 d_svm.fit(loss,x_train, y_train, x_test, y_test,epoch,eta,lamda,batch,shuffle=False,decay=False,gradient=False,validation=True,augment=False)
 
-############################### Dta Shuffling ##############################
+############################### Data Shuffling ##############################
 loss='SVM'
 [epoch,eta,lamda,batch]=[40,0.001,.1,100]
 sh_svm=neuralNet(k,d,xavierInit=False)
