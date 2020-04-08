@@ -1,0 +1,7 @@
+Epoch: 60  ETA(Cyclic): 0.0047829690000000015 - 0.12914016300000003  Lambda:  0.00599464  Batch Size: 100
+Training Size: 45000
+Test Size: 10000
+Validation Size: 5000
+Accuracy on Test Set:0.5069
+Accuracy on Training Set:0.5995555555555555
+Accuracy on Validation Set:0.523

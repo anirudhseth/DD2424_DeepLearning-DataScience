@@ -1,0 +1,7 @@
+Epoch: 10  ETA(Cyclic): 1e-05 - 0.1  Lambda:  0.01  Batch Size: 100
+Training Size: 10000
+Test Size: 10000
+Validation Size: 10000
+Accuracy on Test Set:0.4602
+Accuracy on Training Set:0.6213
+Accuracy on Validation Set:0.4597
