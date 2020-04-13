@@ -1,0 +1,31 @@
+        self.dataset=dataset
+        self.eta=0.01
+        self.rho=0.9
+        self.n1=50
+        self.k1=7  
+        self.n2=50
+        self.k2=3
+        self.batch=100
+        self.epoch=200
+        self.d=dataset['d']
+        self.nlen=dataset['nlen']
+        self.K=dataset['classes']
+        self.nlen1=self.nlen - self.k1 + 1
+        self.nlen2=self.nlen1 - self.k2 + 1
+        self.mu=0
+        self.sigma=np.sqrt(2 / dataset['d'])
+        np.random.seed(112)
+        self.F1 = np.random.normal(self.mu, self.sigma, (self.d,self.k1,self.n1))
+        self.F2 = np.random.normal(self.mu, self.sigma, (self.n1,self.k2,self.n2))
+        self.W = np.random.normal(self.mu, self.sigma, (self.K,self.n2*self.nlen2))
+        self.ValidationLoss=[]
+        self.TrainingLoss=[]
+        self.AccuracyVal=[]
+        self.F1_momentum = np.zeros(self.F1.shape)
+        self.F2_momentum = np.zeros(self.F2.shape)
+        self.W_momentum = np.zeros(self.W.shape)
+        self.Imbalance=True
+        self.CheckGradient=False
+
+Training Accuracy: 0.7225477320941509
+Validation Accuracy: 0.5198412698412699

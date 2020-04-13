@@ -1,0 +1,16 @@
+Malek 1
+Hayek 1
+Yang 2
+Yifeng 2
+Kemr 3
+Cumberbatch 5
+Sheen 5
+Depardieu 6
+Belmondo 6
+Waltz 7
+Farrell 8
+De Sica 10
+Mashkov 15
+Cruz 17
+McGregor 16
+
