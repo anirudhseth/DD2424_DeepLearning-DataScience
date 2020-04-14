@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 
 def TestModel(c):
     data=np.load('friends.npy',allow_pickle=True)
-    MF1 = c.MakeMFMatrix(c.F1, c.nlen)
-    MF2 = c.MakeMFMatrix(c.F2, c.nlen1)
+    MF=[]
+    for f in range(self.numLayer):
+        MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+        MF.append(MF_temp)
     labels = ["Arabic", "Chinese","Czech", "Dutch", "English", "French", "German", "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese", "Russian", "Scottish", "Spanish", "Vietnamese"]
     score=0
     for i in range(data.item()['X'].shape[1]):
-        P = c.ForwardPass(data.item()['X'][:, [i]], MF1, MF2)
+        P = c.ForwardPass(data.item()['X'][:, [i]], MF)
         label = np.argmax(P)
         p=np.max(P)
         print('Last Name: '+data.item()['Names'][i] + "\tActual Label: "+labels[data.item()['Labels'][i]] + '\tPredicted Label:'+labels[label]+'\tProb:'+str(p))
@@ -95,38 +97,51 @@ class CNN():
         self.dataset=dataset
         self.eta=0.01
         self.rho=0.9
-        self.n1=20
-        self.k1=5 
-        self.n2=20
-        self.k2=3
+        self.numLayer=4
+        self.n=[10,5,4,10] #specify number of filter in each layer here
+        self.k=[3,5,2,7]
         self.batch=100
-        self.epoch=10
+        self.epoch=200
         self.d=dataset['d']
-        self.nlen=dataset['nlen']
+        self.nlen=[]
+        self.nlen.append(dataset['nlen'])
         self.K=dataset['classes']
-        self.nlen1=self.nlen - self.k1 + 1
-        self.nlen2=self.nlen1 - self.k2 + 1
+        for i in range(self.numLayer):
+            self.nlen.append(self.nlen[-1]-self.k[i]+1)
         self.mu=0
         self.sigma=np.sqrt(2 / dataset['d'])
-        np.random.seed(112) # for the best model in lab
-        # np.random.seed(1) # for first two models in lab
-        self.F1 = np.random.normal(self.mu, self.sigma, (self.d,self.k1,self.n1))
-        self.F2 = np.random.normal(self.mu, self.sigma, (self.n1,self.k2,self.n2))
-        self.W = np.random.normal(self.mu, self.sigma, (self.K,self.n2*self.nlen2))
+        np.random.seed(112) 
+        self.F=[]
+        for i in range(self.numLayer):
+            if i==0:
+                F_i=np.random.normal(self.mu, self.sigma, (self.d,self.k[i],self.n[i]))
+            else:
+                F_i=np.random.normal(self.mu, self.sigma, (self.n[i-1],self.k[i],self.n[i]))
+            self.F.append(F_i)
+
+        self.W = np.random.normal(self.mu, self.sigma, (self.K,self.n[-1]*self.nlen[-1]))
         self.ValidationLoss=[]
         self.TrainingLoss=[]
         self.AccuracyVal=[]
-        self.F1_momentum = np.zeros(self.F1.shape)
-        self.F2_momentum = np.zeros(self.F2.shape)
+        self.F_mom=[]
+        for i in range(self.numLayer):
+                F_i=np.zeros(self.F[i].shape)
+                self.F_mom.append(F_i)
+
         self.W_momentum = np.zeros(self.W.shape)
         self.Imbalance=True
         self.CheckGradient=False
-        self.bias1=np.random.normal(0, self.sigma,((((self.nlen - self.k1 + 1) * self.n1),1)))
-        self.bias2=np.random.normal(0, self.sigma,((((self.nlen1 - self.k2 + 1) * self.n2),1)))
-        self.bias3=np.random.normal(0, self.sigma,(((self.dataset['classes']),1)))
-        self.bias1_momentum=np.zeros(self.bias1.shape)
-        self.bias2_momentum=np.zeros(self.bias2.shape)
-        self.bias3_momentum=np.zeros(self.bias3.shape)
+        self.bias=[]
+        for i in range(self.numLayer):
+            bias_temp_i=np.random.normal(0, self.sigma,((((self.nlen[i] - self.k[i] + 1) * self.n[i]),1)))
+            self.bias.append(bias_temp_i)
+
+        self.biasW=np.random.normal(0, self.sigma,(((self.dataset['classes']),1)))
+        self.bias_mom=[]
+        for i in range(self.numLayer):
+            bias_temp_i=np.zeros(self.bias[i].shape)
+            self.bias_mom.append(bias_temp_i)
+        self.biasW_momentum=np.zeros(self.biasW.shape)
 
     def softmax(self,x):
         softmax = np.exp(x) / sum(np.exp(x))
@@ -140,102 +155,6 @@ class CNN():
             MF[i * nf:(i + 1) * nf, dd * i:dd * i + dd * k] = VF
         return MF
 
-    def computeGradientsNum(self, X, Y, MF1, MF2):
-        h = 1e-5
-        grad_F1 = np.zeros(self.F1.shape)
-        grad_W = np.zeros(self.W.shape)
-        grad_F2 = np.zeros(self.F2.shape)
-        grad_b1= np.zeros(self.bias1.shape)
-        grad_b2= np.zeros(self.bias2.shape)
-        grad_b3= np.zeros(self.bias3.shape)
-        print("Numerical F1 gradient")
-        for i in (range(self.F1.shape[2])):
-            for j in range(self.F1.shape[1]):
-                for k in range(self.F1.shape[0]):
-                    F1_try = np.copy(self.F1)
-                    F1_try[k, j, i] -= h
-                    MF1_try = self.MakeMFMatrix(F1_try, self.nlen)
-                    l1 = self.ComputeCost(X, Y, MF1_try, MF2)
-                    F1_try = np.copy(self.F1)
-                    F1_try[k, j, i] += h
-                    MF1_try = self.MakeMFMatrix(F1_try, self.nlen)
-                    l2 = self.ComputeCost(X, Y, MF1_try, MF2)
-                    grad_F1[k, j, i] = (l2 - l1) / (2 * h)
-
-        print("Numerical F2 gradient")
-        for i in (range(self.F2.shape[2])):
-            for j in range(self.F2.shape[1]):
-                for k in range(self.F2.shape[0]):
-                    F2_try = np.copy(self.F2)
-                    F2_try[k, j, i] -= h
-                    MF2_try = self.MakeMFMatrix(F2_try, self.nlen1)
-                    l1 = self.ComputeCost(X, Y, MF1, MF2_try)
-                    F2_try = np.copy(self.F2)
-                    F2_try[k, j, i] += h
-                    MF2_try = self.MakeMFMatrix(F2_try, self.nlen1)
-                    l2 = self.ComputeCost(X, Y, MF1, MF2_try)
-                    grad_F2[k, j, i] = (l2 - l1) / (2 * h)
-
-        print("Numerical W gradient")
-        W_bk=np.copy(self.W)
-        for i in (range(self.W.shape[0])):
-            for j in range(self.W.shape[1]):
-                W_try = np.copy(W_bk)
-                W_try[i][j] -= h
-                self.W=np.copy(W_try)
-                l1 = self.ComputeCost(X, Y, MF1, MF2)
-                W_try = np.copy(W_bk)
-                W_try[i][j] += h
-                self.W=np.copy(W_try)
-                l2 = self.ComputeCost(X, Y, MF1, MF2)
-                grad_W[i, j] = (l2 - l1) / (2 * h)
-        self.W=np.copy(W_bk)
-        
-        print("Numerical Bias1 gradient")
-        bias_bk=np.copy(self.bias1)
-        for i in range(len(self.bias1)):
-            bias_try=np.copy(self.bias1)
-            bias_try[i]+=h
-            self.bias1=np.copy(bias_try)
-            l1 = self.ComputeCost(X, Y, MF1, MF2)
-            bias_try=np.copy(bias_bk)
-            bias_try[i]-=h
-            self.bias1=np.copy(bias_try)
-            l2 = self.ComputeCost(X, Y, MF1, MF2)
-            grad_b1[i] = (l2-l1) / (2 * h)
-        self.bias1=np.copy(bias_bk)
-
-        print("Numerical Bias2 gradient")
-        bias_bk=np.copy(self.bias2)
-        for i in range(len(self.bias2)):
-            bias_try=np.copy(self.bias2)
-            bias_try[i]+=h
-            self.bias2=np.copy(bias_try)
-            l1 = self.ComputeCost(X, Y, MF1, MF2)
-            bias_try=np.copy(bias_bk)
-            bias_try[i]-=h
-            self.bias2=np.copy(bias_try)
-            l2 = self.ComputeCost(X, Y, MF1, MF2)
-            grad_b2[i] = (l2-l1) / (2 * h)
-        self.bias2=np.copy(bias_bk)
-
-        print("Numerical Bias3 gradient")
-        bias_bk=np.copy(self.bias3)
-        for i in range(len(self.bias3)):
-            bias_try=np.copy(self.bias3)
-            bias_try[i]+=h
-            self.bias3=np.copy(bias_try)
-            l1 = self.ComputeCost(X, Y, MF1, MF2)
-            bias_try=np.copy(bias_bk)
-            bias_try[i]-=h
-            self.bias3=np.copy(bias_try)
-            l2 = self.ComputeCost(X, Y, MF1, MF2)
-            grad_b3[i] = (l2-l1) / (2 * h)
-        self.bias3=np.copy(bias_bk)
-
-
-        return grad_F1, grad_F2, grad_W ,grad_b1,grad_b2,grad_b3
-
     def MakeMXMatrix(self, x_input, d, k):
         n_len = int(x_input.shape[0] / d)
         VX = np.zeros((n_len - k + 1, k * d))
@@ -247,87 +166,136 @@ class CNN():
     def relu(self,t):
         return np.maximum(0,t)
 
-    def ForwardPass(self,X,MF1,MF2):
-        D=MF1.dot(X)+self.bias1
-        X1=self.relu(D)
-        D=MF2.dot(X1)+self.bias2
-        X2=self.relu(D)
-        S=self.W.dot(X2)+self.bias3
+    def ForwardPass(self,X,MF):
+        X_hidden=[]
+        X_hidden.append(X)
+        for f in range(self.numLayer):
+            D=MF[f].dot(X_hidden[-1])+self.bias[f]
+            X_temp=self.relu(D)
+            X_hidden.append(X_temp)
+        S=self.W.dot(X_hidden[-1])+self.biasW
         P=self.softmax(S)
         return P
 
-    def ComputeCost(self, X, Y,MF1,MF2):
+    def ComputeCost(self, X, Y,MF):
         N = X.shape[1]
-        P = self.ForwardPass(X,MF1,MF2)
+        P = self.ForwardPass(X,MF)
         loss = -1/N *np.sum(Y*np.log(P))
         return loss
     
-    def ComputeGradients(self, X, Y,MF1,MF2):
+    def ComputeGradients(self, X, Y,MF):
+        
+        gradF=[]
+        for f in range(self.numLayer):
+            gradF.append(np.zeros((self.F[f].shape)))
 
-        gradF1 = np.zeros((self.F1.shape))
-        gradF2 = np.zeros((self.F2.shape))
         gradW = np.zeros((self.W.shape))
-        gradbias1=np.zeros((self.bias1.shape))
-        gradbias2=np.zeros((self.bias2.shape))
-        gradbias3=np.zeros((self.bias3.shape))
+        gradbias=[]
+        for f in range(self.numLayer):
+            gradbias.append(np.zeros((self.bias[f].shape)))
 
-
-        D=MF1.dot(X)+self.bias1
-        X1=self.relu(D)
-        D=MF2.dot(X1)+self.bias2
-        X2=self.relu(D)
-        S=self.W.dot(X2)+self.bias3
-        P = self.softmax(S)
+        gradbiasW=np.zeros((self.biasW.shape))
         
+        
+        X_hidden=[]
+        X_hidden.append(X)
+        for f in range(self.numLayer):
+            D=MF[f].dot(X_hidden[-1])+self.bias[f]
+            X_temp=self.relu(D)
+            X_hidden.append(X_temp)
+        S=self.W.dot(X_hidden[-1])+self.biasW
+        P=self.softmax(S)
+
         G = -(Y.T - P.T).T
-        gradW = np.dot(G, X2.T) / X2.shape[1]
-        gradbias3 = np.reshape(1/X2.shape[1] * G.dot(np.ones(X2.shape[1])), (Y.shape[0], 1))
+        gradW = np.dot(G, X_hidden[-1].T) / X_hidden[-1].shape[1]
+        gradbiasW = np.reshape(1/X_hidden[-1].shape[1] * G.dot(np.ones(X_hidden[-1].shape[1])), (Y.shape[0], 1))
         
-        n = X1.shape[1]
-        G = np.dot(G.T, self.W)
-        S2 = np.where(X2 > 0, 1, 0)
-        G = np.multiply(G.T, S2)
-        gradbias2=np.reshape(1/n * G.dot(np.ones(n)), (X2.shape[0], 1))
-        
-        
-        for j in (range(n)):
-            xj = X1[:, [j]]
-            gj = G[:, [j]]
-            MjGen = self.MakeMXMatrix(xj, self.n1, self.k2)
-            a = gj.shape[0]
-            gj = gj.reshape((int(a / self.n2), self.n2))
-            v2 = np.dot(MjGen.T, gj)
-            gradF2 += v2.reshape(self.F2.shape, order='F') / n
 
-        G = np.dot(G.T, MF2)
-        S1 = np.where(X1 > 0, 1, 0)
-        G = np.multiply(G.T, S1)
-        n = X.shape[1]
-        gradbias1=np.reshape(1/n * G.dot(np.ones(n)), (X1.shape[0], 1))
-        for j in (range(n)):
-            gj = G[:, [j]]
-            xj = X[:, [j]]
-            Mj = self.MakeMXMatrix(xj, self.dataset['d'], self.k1)
-            a = gj.shape[0]
-            gj = gj.reshape((int(a / self.n1), self.n1))
-            v = np.dot(Mj.T, gj)
-            gradF1 += v.reshape(self.F1.shape, order='F') / n
-        return gradW,gradF1,gradF2,gradbias1,gradbias2,gradbias3
+        for f in range(self.numLayer,0,-1):
+            # print(f)
+            n = X_hidden[f-1].shape[1]
+            if(f==self.numLayer):
+                G = np.dot(G.T, self.W)
+            else:
+                G = np.dot(G.T, MF[f])
+            S=np.where(X_hidden[f] > 0, 1, 0)
+            G = np.multiply(G.T, S)
+            gradbias[f-1]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[f].shape[0], 1))
+            for j in (range(n)):
+                xj = X_hidden[f-1][:, [j]]
+                gj = G[:, [j]]
+                if(f==1):
+                    MjGen = self.MakeMXMatrix(xj, self.dataset['d'], self.k[f-1])
+                else:
+                    MjGen = self.MakeMXMatrix(xj, self.n[f-2], self.k[f-1])
+                a = gj.shape[0]
+                gj = gj.reshape((int(a / self.n[f-1]), self.n[f-1]))
+                v2 = np.dot(MjGen.T, gj)
+                gradF[f-1] += v2.reshape(self.F[f-1].shape, order='F') / n
+            
+
+
+        # n = X_hidden[2].shape[1]
+        # G = np.dot(G.T, self.W)
+        # S3 = np.where(X_hidden[3] > 0, 1, 0)
+        # G = np.multiply(G.T, S3)
+        # gradbias[2]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[3].shape[0], 1))
+        # for j in (range(n)):
+        #     xj = X_hidden[2][:, [j]]
+        #     gj = G[:, [j]]
+        #     MjGen = self.MakeMXMatrix(xj, self.n[1], self.k[2])
+        #     a = gj.shape[0]
+        #     gj = gj.reshape((int(a / self.n[2]), self.n[2]))
+        #     v2 = np.dot(MjGen.T, gj)
+        #     gradF[2] += v2.reshape(self.F[2].shape, order='F') / n
+
+        # G = np.dot(G.T, MF[2])
+        # S2 = np.where(X_hidden[2] > 0, 1, 0)
+        # G = np.multiply(G.T, S2)
+        # n = X_hidden[1].shape[1]
+        # gradbias[1]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[2].shape[0], 1))
+        # for j in (range(n)):
+        #     gj = G[:, [j]]
+        #     xj = X_hidden[1][:, [j]]
+        #     Mj = self.MakeMXMatrix(xj, self.n[0], self.k[1])
+        #     a = gj.shape[0]
+        #     gj = gj.reshape((int(a / self.n[1]), self.n[1]))
+        #     v = np.dot(Mj.T, gj)
+        #     gradF[1] += v.reshape(self.F[1].shape, order='F') / n
+
+        # G = np.dot(G.T, MF[1])
+        # S1 = np.where(X_hidden[1] > 0, 1, 0)
+        # G = np.multiply(G.T, S1)
+        # n = X_hidden[0].shape[1]
+        # gradbias[0]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[1].shape[0], 1))
+        # for j in (range(n)):
+        #     gj = G[:, [j]]
+        #     xj = X_hidden[0][:, [j]]
+        #     Mj = self.MakeMXMatrix(xj, self.dataset['d'], self.k[0])
+        #     a = gj.shape[0]
+        #     gj = gj.reshape((int(a / self.n[0]), self.n[0]))
+        #     v = np.dot(Mj.T, gj)
+        #     gradF[0] += v.reshape(self.F[0].shape, order='F') / n
+
+
+        return gradW,gradF,gradbias,gradbiasW
 
     def computeAccuracy(self, X, Y):
-        MF1 = self.MakeMFMatrix(self.F1, self.nlen)
-        MF2 = self.MakeMFMatrix(self.F2, self.nlen1)
+        MF=[]
+        for f in range(self.numLayer):
+            MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+            MF.append(MF_temp)
         acc = 0
         for i in range(X.shape[1]):
-            P = self.ForwardPass(X[:, [i]], MF1, MF2)
+            P = self.ForwardPass(X[:, [i]], MF)
             label = np.argmax(P)
             if label == Y[i]:
                 acc += 1
         acc /= X.shape[1]
         return acc
 
-    def createConfusionMatrix(self, X, Y, MF1, MF2):
-        P = self.ForwardPass(X, MF1, MF2)
+    def createConfusionMatrix(self, X, Y, MF):
+        P = self.ForwardPass(X, MF)
         P = np.argmax(P, axis=0)
         T = np.argmax(Y, axis=0)
         from sklearn.metrics import confusion_matrix
@@ -339,9 +307,11 @@ class CNN():
         class_idx, counts = np.unique(self.dataset['Labels'][self.dataset['TrainIndex']], return_counts=True)
         X=self.dataset['X_train']
         Y=self.dataset['Y_train']
-        MF1=self.MakeMFMatrix(self.F1, self.nlen)
-        MF2 = self.MakeMFMatrix(self.F2, self.nlen1)
-        self.createConfusionMatrix(X, Y, MF1, MF2)
+        MF=[]
+        for f in range(self.numLayer):
+            MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+            MF.append(MF_temp)
+        self.createConfusionMatrix(X, Y,MF)
         print('Training Accuracy:',self.computeAccuracy(X,self.dataset['Labels'][self.dataset['TrainIndex']]))
         print('Validation Accuracy:',self.AccuracyVal[-1])
         plt.plot(self.AccuracyVal,label="Validation Set")
@@ -368,9 +338,12 @@ class CNN():
         else:
             n = X.shape[1]
             n_batch = int(np.floor(n / self.batch))
-        MF1=self.MakeMFMatrix(self.F1, self.nlen)
-        MF2 = self.MakeMFMatrix(self.F2, self.nlen1)
-  
+        
+        MF=[]
+        for f in range(self.numLayer):
+            MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+            MF.append(MF_temp)
+
         for i in tqdm(range(self.epoch)):
 
             if(self.Imbalance==True):
@@ -400,50 +373,35 @@ class CNN():
                     Xbatch = X[:, idx]
                     Ybatch = Y[:,idx]
 
-                gradW,gradF1,gradF2,gradbias1,gradbias2,gradbias3=self.ComputeGradients(Xbatch, Ybatch,MF1,MF2)
+                gradW,gradF,gradbias,gradbiasW=self.ComputeGradients(Xbatch, Ybatch,MF)
 
-                if(self.CheckGradient==True and j==0 and i==0):
-                
-                    gradW_a,gradF1_a,gradF2_a,gradbias1_a,gradbias2_a,gradbias3_a = self.ComputeGradients(Xbatch, Ybatch,MF1,MF2)
-                    self.gradbias1_a=gradbias1_a
-                    self.gradbias2_a=gradbias2_a
-                    self.gradbias3_a=gradbias3_a
 
-                    grad_F1_n, grad_F2_n, grad_W_n,gradbias1_n,gradbias2_n,gradbias3_n=self.computeGradientsNum(Xbatch, Ybatch,MF1,MF2)
-                    self.gradbias1_n=gradbias1_n
-                    self.gradbias2_n=gradbias2_n
-                    self.gradbias3_n=gradbias3_n
-                    
-                    print('Mean Difference between Gradients of Weights :',np.mean(gradW_a-grad_W_n))
-                    print('Mean Difference between Gradients of F1 :',np.mean(gradF1_a-grad_F1_n))
-                    print('Mean Difference between Gradients of F2 :',np.mean(gradF2_a-grad_F2_n))
-                    print('Mean Difference between Gradients of Bias1 :',np.mean(gradbias1_a-gradbias1_n))
-                    print('Mean Difference between Gradients of Bias2 :',np.mean(gradbias2_a-gradbias2_n))
-                    print('Mean Difference between Gradients of Bias3 :',np.mean(gradbias3_a-gradbias3_n))
-
-                    
                 self.W_momentum = self.W_momentum * self.rho + self.eta * gradW
-                self.F2_momentum = self.F2_momentum * self.rho + self.eta * gradF2
-                self.F1_momentum = self.F1_momentum * self.rho + self.eta * gradF1
-                self.bias1_momentum=self.bias1_momentum* self.rho + self.eta * gradbias1
-                self.bias2_momentum=self.bias2_momentum* self.rho + self.eta * gradbias2
-                self.bias3_momentum=self.bias3_momentum* self.rho + self.eta * gradbias3
-                self.F1 -= self.F1_momentum
-                self.F2 -= self.F2_momentum
+                self.biasW_momentum=self.biasW_momentum* self.rho + self.eta * gradbiasW
+                for f in range(self.numLayer):
+                    self.F_mom[f] = self.F_mom[f] * self.rho + self.eta * gradF[f]
+                    self.bias_mom[f]=self.bias_mom[f]* self.rho + self.eta * gradbias[f]
+
+
                 self.W -= self.W_momentum
-                self.bias1-=self.bias1_momentum
-                self.bias2-=self.bias2_momentum
-                self.bias3-=self.bias3_momentum
-                MF1=self.MakeMFMatrix(self.F1, self.nlen)
-                MF2 = self.MakeMFMatrix(self.F2, self.nlen1)
-            valLoss = self.ComputeCost(X_Val, Y_val,MF1,MF2)
+                self.biasW-=self.biasW_momentum
+                for f in range(self.numLayer):
+                    self.F[f] -= self.F_mom[f]
+                    self.bias[f]-=self.bias_mom[f]
+                
+                MF=[]
+                for f in range(self.numLayer):
+                    MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+                    MF.append(MF_temp)
+            valLoss = self.ComputeCost(X_Val, Y_val,MF)
             vallacc = self.computeAccuracy(X_Val,self.dataset['Labels'][self.dataset['ValIndex']])
-            trainloss=self.ComputeCost(X,Y,MF1,MF2)
+            trainloss=self.ComputeCost(X,Y,MF)
             self.TrainingLoss.append(trainloss)
             self.AccuracyVal.append(vallacc)
             self.ValidationLoss.append(valLoss)
 dataset=DataPreparation()
 c=CNN(dataset)
 c.fit()
+print(c.AccuracyVal[-1])
 # c.modelPerfomance()
 # TestModel(c)
