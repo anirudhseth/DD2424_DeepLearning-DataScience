@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 def TestModel(c):
     data=np.load('friends.npy',allow_pickle=True)
     MF=[]
-    for f in range(self.numLayer):
-        MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
+    for f in range(c.numLayer):
+        MF_temp=c.MakeMFMatrix(c.F[f], c.nlen[f])
         MF.append(MF_temp)
     labels = ["Arabic", "Chinese","Czech", "Dutch", "English", "French", "German", "Greek", "Irish", "Italian", "Japanese", "Korean", "Polish", "Portuguese", "Russian", "Scottish", "Spanish", "Vietnamese"]
     score=0
@@ -97,9 +97,9 @@ class CNN():
         self.dataset=dataset
         self.eta=0.01
         self.rho=0.9
-        self.numLayer=4
-        self.n=[10,5,4,10] #specify number of filter in each layer here
-        self.k=[3,5,2,7]
+        self.numLayer=2
+        self.n=[50,50] #specify number of filter in each layer here
+        self.k=[7,3]
         self.batch=100
         self.epoch=200
         self.d=dataset['d']
@@ -142,6 +142,21 @@ class CNN():
             bias_temp_i=np.zeros(self.bias[i].shape)
             self.bias_mom.append(bias_temp_i)
         self.biasW_momentum=np.zeros(self.biasW.shape)
+        self.dropoutFlag=True
+        self.dropoutProb=0
+        self.CyclicEta=True
+        self.eta_min=0.001
+        self.eta_max=0.1
+        self.ns=500
+        self.etaPlot=[]
+    
+    def getETA(self,t):
+        if t <= self.ns:
+            eta = self.eta_min + t/self.ns * (self.eta_max - self.eta_min)
+        elif t <= 2*self.ns:
+            eta = self.eta_max - (t - self.ns)/self.ns * (self.eta_max - self.eta_min)
+        t = (t+1) % (2*self.ns)
+        return eta,t
 
     def softmax(self,x):
         softmax = np.exp(x) / sum(np.exp(x))
@@ -166,6 +181,16 @@ class CNN():
     def relu(self,t):
         return np.maximum(0,t)
 
+    def dropout(self,X, drop_probability):
+        #https://stats.stackexchange.com/questions/205932/dropout-scaling-the-activation-versus-inverting-the-dropout
+        keep_probability = 1 - drop_probability
+        mask = np.random.rand(*X.shape) < keep_probability
+        if keep_probability > 0.0:
+            scale = (1/keep_probability)
+        else:
+            scale = 0.0
+        return mask * X * scale
+
     def ForwardPass(self,X,MF):
         X_hidden=[]
         X_hidden.append(X)
@@ -174,6 +199,8 @@ class CNN():
             X_temp=self.relu(D)
             X_hidden.append(X_temp)
         S=self.W.dot(X_hidden[-1])+self.biasW
+        if (self.dropoutFlag==True):
+            S=self.dropout(S, self.dropoutProb)
         P=self.softmax(S)
         return P
 
@@ -204,6 +231,8 @@ class CNN():
             X_temp=self.relu(D)
             X_hidden.append(X_temp)
         S=self.W.dot(X_hidden[-1])+self.biasW
+        if (self.dropoutFlag==True):
+            S=self.dropout(S, self.dropoutProb)
         P=self.softmax(S)
 
         G = -(Y.T - P.T).T
@@ -326,8 +355,13 @@ class CNN():
         plt.show()
 
     def fit(self):
+
+        if(self.CyclicEta):
+            t=0
+            self.eta=self.eta_min
+        else:
+            self.eta=self.eta_min
         X=self.dataset['X_train']
-        
         Y=self.dataset['Y_train']
         X_Val=self.dataset['X_Val']
         Y_val=self.dataset['Y_Val']
@@ -393,6 +427,9 @@ class CNN():
                 for f in range(self.numLayer):
                     MF_temp=self.MakeMFMatrix(self.F[f], self.nlen[f])
                     MF.append(MF_temp)
+                if(self.CyclicEta):
+                    self.eta,t=self.getETA(t)
+                    self.etaPlot.append(self.eta)
             valLoss = self.ComputeCost(X_Val, Y_val,MF)
             vallacc = self.computeAccuracy(X_Val,self.dataset['Labels'][self.dataset['ValIndex']])
             trainloss=self.ComputeCost(X,Y,MF)
@@ -403,5 +440,5 @@ dataset=DataPreparation()
 c=CNN(dataset)
 c.fit()
 print(c.AccuracyVal[-1])
-# c.modelPerfomance()
-# TestModel(c)
+c.modelPerfomance()
+TestModel(c)

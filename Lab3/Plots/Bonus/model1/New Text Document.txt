@@ -1,0 +1,20 @@
+Last Name: malek	Actual Label: Arabic	Predicted Label:Czech	Prob:0.8376563812513843
+Last Name: hayek	Actual Label: Arabic	Predicted Label:Czech	Prob:0.6517993883179919
+Last Name: yang	Actual Label: Chinese	Predicted Label:Korean	Prob:0.76011881863337
+Last Name: yifeng	Actual Label: Chinese	Predicted Label:Chinese	Prob:0.9930827272256854
+Last Name: kemr	Actual Label: Czech	Predicted Label:Czech	Prob:0.4080989218777862
+Last Name: cumberbatch	Actual Label: English	Predicted Label:Irish	Prob:0.8344965043762238
+Last Name: sheen	Actual Label: English	Predicted Label:Chinese	Prob:0.9243064732322347
+Last Name: depardieu	Actual Label: French	Predicted Label:French	Prob:0.9676482670607419
+Last Name: belmondo	Actual Label: French	Predicted Label:Italian	Prob:0.30666586050019023
+Last Name: waltz	Actual Label: German	Predicted Label:German	Prob:0.9455100795641299
+Last Name: farrell	Actual Label: Greek	Predicted Label:Irish	Prob:0.7762290829186753
+Last Name: desica	Actual Label: Italian	Predicted Label:Italian	Prob:0.8215530790799799
+Last Name: mashkov	Actual Label: Russian	Predicted Label:Russian	Prob:0.9997000843274407
+Last Name: cruz	Actual Label: Spanish	Predicted Label:Spanish	Prob:0.9273620530654004
+Last Name: mcgregor	Actual Label: Scottish	Predicted Label:Scottish	Prob:0.9853341067156002
+Accuracy is  0.5333333333333333
+
+
+Training Accuracy: 0.8272047681583998
+Validation Accuracy: 0.5674603174603174
