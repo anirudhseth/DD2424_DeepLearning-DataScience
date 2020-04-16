@@ -182,12 +182,25 @@ class CNN():
         self.W=np.copy(W_bk)
         return grad_F1, grad_F2, grad_W
 
-    def MakeMXMatrix(self, x_input, d, k):
-        n_len = int(x_input.shape[0] / d)
+    def MakeMXMatrix_Slow(self, X, d, k, nf):
+        n_len = int(X.shape[0] / d)
+        MX = np.zeros(((n_len - k + 1) * nf, k * nf * d))
         VX = np.zeros((n_len - k + 1, k * d))
-        x_input = x_input.reshape((d, n_len), order='F')
+        X = X.reshape((d, n_len), order='F')
         for i in range(n_len - k + 1):
-            VX[i, :] = (x_input[:, i:i + k].reshape((k * d, 1), order='F')).T
+            VX[i, :] = (X[:, i:i + k].reshape((k * d, 1), order='F')).T
+        for i in range(n_len - k + 1):
+            for j in range(nf):
+                MX[i * nf + j:i * nf + j + 1, j *
+                    k * d:j * k * d + k * d] = VX[i, :]
+
+        return MX
+    def MakeMXMatrix(self, X, d, k):
+        n_len = int(X.shape[0] / d)
+        VX = np.zeros((n_len - k + 1, k * d))
+        X = X.reshape((d, n_len), order='F')
+        for i in range(n_len - k + 1):
+            VX[i, :] = (X[:, i:i + k].reshape((k * d, 1), order='F')).T
         return VX
 
     def relu(self,t):
@@ -232,10 +245,18 @@ class CNN():
         for j in (range(n)):
             xj = X1[:, [j]]
             gj = G[:, [j]]
-            MjGen = self.MakeMXMatrix(xj, self.n1, self.k2)
+
+            #slow method
+            # Mj = self.MakeMXMatrix_Slow(
+            #      xj, self.n1, self.k2, self.n2)
+            # v = np.dot(gj.T, Mj)
+            # gradF2 += v.reshape(self.F2.shape, order='F') / n
+            
+            #efficient method
+            Mj = self.MakeMXMatrix(xj, self.n1, self.k2)
             a = gj.shape[0]
             gj = gj.reshape((int(a / self.n2), self.n2))
-            v2 = np.dot(MjGen.T, gj)
+            v2 = np.dot(Mj.T, gj)
             gradF2 += v2.reshape(self.F2.shape, order='F') / n
 
         G = np.dot(G.T, MF2)
@@ -245,10 +266,18 @@ class CNN():
         for j in (range(n)):
             gj = G[:, [j]]
             xj = X[:, [j]]
+
+            #slow method
+            # Mj = self.MakeMXMatrix_Slow(xj, self.dataset['d'], self.k1, self.n1)
+            # v = np.dot(gj.T, Mj)
+
+            #efficient method
             Mj = self.MakeMXMatrix(xj, self.dataset['d'], self.k1)
             a = gj.shape[0]
             gj = gj.reshape((int(a / self.n1), self.n1))
             v = np.dot(Mj.T, gj)
+
+
             gradF1 += v.reshape(self.F1.shape, order='F') / n
         return gradW,gradF1,gradF2
 

@@ -262,51 +262,6 @@ class CNN():
                 v2 = np.dot(MjGen.T, gj)
                 gradF[f-1] += v2.reshape(self.F[f-1].shape, order='F') / n
             
-
-
-        # n = X_hidden[2].shape[1]
-        # G = np.dot(G.T, self.W)
-        # S3 = np.where(X_hidden[3] > 0, 1, 0)
-        # G = np.multiply(G.T, S3)
-        # gradbias[2]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[3].shape[0], 1))
-        # for j in (range(n)):
-        #     xj = X_hidden[2][:, [j]]
-        #     gj = G[:, [j]]
-        #     MjGen = self.MakeMXMatrix(xj, self.n[1], self.k[2])
-        #     a = gj.shape[0]
-        #     gj = gj.reshape((int(a / self.n[2]), self.n[2]))
-        #     v2 = np.dot(MjGen.T, gj)
-        #     gradF[2] += v2.reshape(self.F[2].shape, order='F') / n
-
-        # G = np.dot(G.T, MF[2])
-        # S2 = np.where(X_hidden[2] > 0, 1, 0)
-        # G = np.multiply(G.T, S2)
-        # n = X_hidden[1].shape[1]
-        # gradbias[1]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[2].shape[0], 1))
-        # for j in (range(n)):
-        #     gj = G[:, [j]]
-        #     xj = X_hidden[1][:, [j]]
-        #     Mj = self.MakeMXMatrix(xj, self.n[0], self.k[1])
-        #     a = gj.shape[0]
-        #     gj = gj.reshape((int(a / self.n[1]), self.n[1]))
-        #     v = np.dot(Mj.T, gj)
-        #     gradF[1] += v.reshape(self.F[1].shape, order='F') / n
-
-        # G = np.dot(G.T, MF[1])
-        # S1 = np.where(X_hidden[1] > 0, 1, 0)
-        # G = np.multiply(G.T, S1)
-        # n = X_hidden[0].shape[1]
-        # gradbias[0]=np.reshape(1/n * G.dot(np.ones(n)), (X_hidden[1].shape[0], 1))
-        # for j in (range(n)):
-        #     gj = G[:, [j]]
-        #     xj = X_hidden[0][:, [j]]
-        #     Mj = self.MakeMXMatrix(xj, self.dataset['d'], self.k[0])
-        #     a = gj.shape[0]
-        #     gj = gj.reshape((int(a / self.n[0]), self.n[0]))
-        #     v = np.dot(Mj.T, gj)
-        #     gradF[0] += v.reshape(self.F[0].shape, order='F') / n
-
-
         return gradW,gradF,gradbias,gradbiasW
 
     def computeAccuracy(self, X, Y):
